@@ -1,71 +1,69 @@
-import tkinter as tk
-from PIL import Image, ImageTk
+import os
+from openpyxl import Workbook, load_workbook
+from openpyxl.drawing.image import Image
 
-class App(tk.Tk):
-    def __init__(self):
-        super().__init__()
+def insert_image_centered(file_path, image_path, sheet_name='Sheet1', cell='A1'):
+    # 檢查圖片文件是否存在
+    if not os.path.isfile(image_path):
+        raise FileNotFoundError(f"Image file not found: {image_path}")
 
-        # Title, Icon, size
-        self.title('德龍企業社')
-        self.iconbitmap('./image/icon.ico')
-        self.geometry('700x800')
+    # 加載或創建工作簿
+    try:
+        workbook = load_workbook(file_path)
+    except FileNotFoundError:
+        workbook = Workbook()  # 如果文件不存在，則創建新文件
 
-        self.index_page = IndexPage(self)
-        self.index_page.pack(fill='both', expand=True)
-        self.index_page.create_index_page()
+    # 獲取工作表
+    if sheet_name in workbook.sheetnames:
+        sheet = workbook[sheet_name]
+    else:
+        sheet = workbook.create_sheet(sheet_name)
 
+    # 創建圖片對象
+    img = Image(image_path)
 
-class IndexPage(tk.Frame):
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.resize_ids = {}  # 用於跟踪各個Label的after()事件ID
+    # 獲取儲存格的行高和列寬
+    cell_row = int(cell[1:])  # 行數（例如 A1 -> 1）
+    cell_col = cell[0]  # 列字母（例如 A1 -> A）
+    
+    # 轉換列字母為列數（例如 A -> 1, B -> 2, ...）
+    col_idx = ord(cell_col.upper()) - ord('A') + 1
+    
+    # 獲取儲存格的尺寸
+    row_height = sheet.row_dimensions[cell_row].height or 15  # 預設行高
+    col_width = sheet.column_dimensions[cell_col].width or 8.43  # 預設列寬
 
-    def create_index_page(self):
-        # index Frame
-        self.frame_container = tk.Frame(self, background='Yellow')
-        self.frame_container.pack(fill='both', expand=True)
+    # 計算圖片大小
+    img_width = img.width
+    img_height = img.height
+    
+    # 計算需要縮放的比例
+    scale_width = col_width * 180  # 1個Excel列的寬度約等於7.5個像素
+    scale_height = row_height * 180  # 1個Excel行的高度約等於0.75個像素
 
-        # 加載兩張圖片
-        img1 = Image.open('./image/logo.png')
-        img2 = Image.open('./image/logo.png')
+    scale_ratio = min(scale_width / img_width, scale_height / img_height)
 
-        # 創建兩個不同的 Label，分別顯示不同的圖片
-        self.label_img1 = tk.Label(self.frame_container)
-        self.label_img1.place(relx=0.3, rely=0.3, relwidth=0.4, relheight=0.4, anchor='center')
+    # 根據比例縮放圖片
+    img.width = int(img_width * scale_ratio)
+    img.height = int(img_height * scale_ratio)
 
-        self.label_img2 = tk.Label(self.frame_container)
-        self.label_img2.place(relx=0.7, rely=0.7, relwidth=0.4, relheight=0.4, anchor='center')
+    # 計算圖片的左上角位置
+    left = (col_idx - 1) * 7.5  # 每列大約7.5像素
+    top = (cell_row - 1) * 15  # 每行大約15像素
 
-        # 將兩個圖片和 Label 傳遞到動態調整大小的功能中
-        self.bind_resize_event(self.label_img1, img1)
-        self.bind_resize_event(self.label_img2, img2)
+    # 設置圖片的絕對位置
+    img.anchor = cell  # 將圖片放置在儲存格中
+    img.left = left + (col_width * 7.5 - img.width) / 2
+    img.top = top + (row_height * 0.75 - img.height) / 2
 
-    def bind_resize_event(self, label, image):
-        # 綁定 <Configure> 事件，當窗口大小改變時觸發
-        label.bind("<Configure>", lambda event: self.delayed_resize_image(event, label, image))
+    # 插入圖片到指定單元格
+    sheet.add_image(img)
 
-    def delayed_resize_image(self, event, label, image):
-        # 如果該Label已有延迟更新的計劃，取消它
-        if label in self.resize_ids:
-            self.after_cancel(self.resize_ids[label])
+    # 保存工作簿
+    workbook.save(file_path)
 
-        # 延迟 100 毫秒后调用真正的图片更新函数
-        self.resize_ids[label] = self.after(100, lambda: self.resize_image(label, image))
-
-    def resize_image(self, label, img):
-        # 获取 Label 的宽度和高度
-        width, height = label.winfo_width(), label.winfo_height()
-
-        if width > 0 and height > 0:  # 确保宽高有效
-            # 按照 Label 尺寸调整图片大小
-            resized_image = img.resize((width, height))
-            tk_image = ImageTk.PhotoImage(resized_image)
-
-            # 更新 Label 中的图片
-            label.config(image=tk_image)
-            label.image = tk_image  # 保留引用，防止图片被垃圾回收
-
-
-if __name__ == '__main__':
-    app = App()
-    app.mainloop()
+# 使用示例
+if __name__ == "__main__":
+    excel_file = 'example.xlsx'  # 指定 Excel 文件的名稱
+    image_file = './image/logo.png'  # 指定要插入的圖片路徑
+    insert_image_centered(excel_file, image_file)

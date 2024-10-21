@@ -92,6 +92,7 @@ class CMSPage(tk.Frame):
         super().__init__(parent)
 
         self.cms_datas = []
+        self.selected_item_index = None  # 用於記錄選中的客戶索引
 
         style = ttk.Style()
         style.configure("Treeview.Heading", font=('標楷體', 14, 'bold'), foreground='black')
@@ -134,34 +135,43 @@ class CMSPage(tk.Frame):
         for column in self.tree_cms['columns']:
             self.tree_cms.heading(column, text=column)
             self.tree_cms.column(column, anchor='center')
+
+        # 綁定點擊事件
+        self.tree_cms.bind("<ButtonRelease-1>", self.on_item_selected)
         
         # Entrys Custom
         self.label_custom = tk.Label(self.frame_container, text='公司名稱:', font=('標楷體', 14, 'bold'), fg='#000000')
-        self.label_custom.place(relx=0.15, rely=0.75, relwidth=0.1, relheight=0.05, anchor='center')
+        self.label_custom.place(relx=0.15, rely=0.8, relwidth=0.1, relheight=0.05, anchor='center')
         self.entry_custom = tk.Entry(self.frame_container, font=('標楷體', 14, 'bold'))
-        self.entry_custom.place(relx=0.32, rely=0.75, relwidth=0.25, relheight=0.04, anchor='center')
+        self.entry_custom.place(relx=0.32, rely=0.8, relwidth=0.25, relheight=0.04, anchor='center')
         self.label_compiled = tk.Label(self.frame_container, text='統編:', font=('標楷體', 14, 'bold'), fg='#000000')
-        self.label_compiled.place(relx=0.5, rely=0.75, relwidth=0.1, relheight=0.05, anchor='center')
+        self.label_compiled.place(relx=0.5, rely=0.8, relwidth=0.1, relheight=0.05, anchor='center')
         self.entry_compiled = tk.Entry(self.frame_container, font=('標楷體', 14, 'bold'))
-        self.entry_compiled.place(relx=0.67, rely=0.75, relwidth=0.25, relheight=0.04, anchor='center')
+        self.entry_compiled.place(relx=0.67, rely=0.8, relwidth=0.25, relheight=0.04, anchor='center')
         self.label_address = tk.Label(self.frame_container, text='公司地址:', font=('標楷體', 14, 'bold'), fg='#000000')
-        self.label_address.place(relx=0.15, rely=0.8, relwidth=0.3, relheight=0.05, anchor='center')
+        self.label_address.place(relx=0.15, rely=0.85, relwidth=0.3, relheight=0.05, anchor='center')
         self.entry_address = tk.Entry(self.frame_container, font=('標楷體', 14, 'bold'))
-        self.entry_address.place(relx=0.5, rely=0.8, relwidth=0.6, relheight=0.04, anchor='center')
+        self.entry_address.place(relx=0.5, rely=0.85, relwidth=0.6, relheight=0.04, anchor='center')
         self.label_contact = tk.Label(self.frame_container, text='聯絡人:', font=('標楷體', 14, 'bold'), fg='#000000')
-        self.label_contact.place(relx=0.15, rely=0.85, relwidth=0.1, relheight=0.05, anchor='center')
+        self.label_contact.place(relx=0.15, rely=0.9, relwidth=0.1, relheight=0.05, anchor='center')
         self.entry_contact = tk.Entry(self.frame_container, font=('標楷體', 14, 'bold'))
-        self.entry_contact.place(relx=0.32, rely=0.85, relwidth=0.25, relheight=0.04, anchor='center')
+        self.entry_contact.place(relx=0.32, rely=0.9, relwidth=0.25, relheight=0.04, anchor='center')
         self.label_phone = tk.Label(self.frame_container, text='聯絡電話:', font=('標楷體', 14, 'bold'), fg='#000000')
-        self.label_phone.place(relx=0.5, rely=0.85, relwidth=0.1, relheight=0.05, anchor='center')
+        self.label_phone.place(relx=0.5, rely=0.9, relwidth=0.1, relheight=0.05, anchor='center')
         self.entry_phone = tk.Entry(self.frame_container, font=('標楷體', 14, 'bold'))
-        self.entry_phone.place(relx=0.67, rely=0.85, relwidth=0.25, relheight=0.04, anchor='center')
+        self.entry_phone.place(relx=0.67, rely=0.9, relwidth=0.25, relheight=0.04, anchor='center')
         # button - create
         self.btn_create = tk.Button(self.frame_container, text='新增', font=('標楷體', 14, 'bold'), fg='#000000', command=self.create_custom)
-        self.btn_create.place(relx=0.8, rely=0.9, relwidth=0.08, relheight=0.04, anchor='center')
+        self.btn_create.place(relx=0.8, rely=0.95, relwidth=0.08, relheight=0.04, anchor='center')
         # button - clear
         self.btn_clear = tk.Button(self.frame_container, text='清空', font=('標楷體', 14, 'bold'), fg='#000000', command=self.clear)
-        self.btn_clear.place(relx=0.7, rely=0.9, relwidth=0.08, relheight=0.04, anchor='center')
+        self.btn_clear.place(relx=0.7, rely=0.95, relwidth=0.08, relheight=0.04, anchor='center')
+        # button - modify
+        self.btn_modify = tk.Button(self.frame_container, text='修改客戶資料', font=('標楷體', 14, 'bold'), fg='#000000', command=self.update_custom)
+        self.btn_modify.place(relx=0.3, rely=0.7, relwidth=0.15, relheight=0.04, anchor='center')
+        # button - delete
+        self.btn_delete = tk.Button(self.frame_container, text='刪除客戶資料', font=('標楷體', 14, 'bold'), fg='#000000', command=self.delete_custom)
+        self.btn_delete.place(relx=0.7, rely=0.7, relwidth=0.15, relheight=0.04, anchor='center')
 
     def update_treeview(self):
         # 先清空現有的內容
@@ -191,6 +201,7 @@ class CMSPage(tk.Frame):
             # update treeview
             self.cms_datas = self.excel_cms.read_all_datas()
             self.update_treeview()
+            messagebox.showinfo(title='成功', message='客戶資料已新增')
         else:
             messagebox.showwarning(title='警告', message='客戶資料不能空白')
     
@@ -200,10 +211,79 @@ class CMSPage(tk.Frame):
         self.entry_address.delete(0, 'end')
         self.entry_contact.delete(0, 'end')
         self.entry_phone.delete(0, 'end')
+        self.selected_item_index = None
+        self.btn_create.config(state='normal')
+
+    def on_item_selected(self, event):
+        # 獲取選中的項目
+        selected_item = self.tree_cms.selection()
+        self.selected_item_index = self.tree_cms.index(selected_item[0])  # 記錄選中的索引
+        if selected_item:
+            # 提取選中的值
+            item_values = self.tree_cms.item(selected_item, 'values')
+            # 將值填入相應的 Entry 控
+            self.entry_custom.delete(0, 'end')
+            self.entry_custom.insert(0, item_values[0])
+            self.entry_compiled.delete(0, 'end')
+            self.entry_compiled.insert(0, item_values[1])
+            self.entry_address.delete(0, 'end')
+            self.entry_address.insert(0, item_values[2])
+            self.entry_contact.delete(0, 'end')
+            self.entry_contact.insert(0, item_values[3])
+            self.entry_phone.delete(0, 'end')
+            self.entry_phone.insert(0, item_values[4])
+            self.btn_create.config(state='disabled')
+
+    def update_custom(self):
+        if self.selected_item_index is not None:
+            updated_data = [
+                self.entry_custom.get(),
+                self.entry_compiled.get(),
+                self.entry_address.get(),
+                self.entry_contact.get(),
+                self.entry_phone.get()
+            ]
+            # 更新 Excel 中的數據
+            self.excel_cms.update_row(self.selected_item_index, updated_data)
+            # 更新成功後刷新資料
+            self.cms_datas = self.excel_cms.read_all_datas()
+            self.update_treeview()
+            self.clear()
+            messagebox.showinfo(title='成功', message='客戶資料已更新')
+        else:
+            messagebox.showwarning(title='警告', message='請先選擇一個客戶')
+
+    def delete_custom(self):
+        if self.selected_item_index is not None:
+            # 確認是否刪除
+            confirm = messagebox.askyesno(title='確認', message='確定要刪除這個客戶資料嗎？')
+            if confirm:
+                # 刪除 Excel 中的資料
+                self.excel_cms.delete_row(self.selected_item_index)
+                # 刷新資料
+                self.cms_datas = self.excel_cms.read_all_datas()
+                self.update_treeview()
+                self.clear()
+                messagebox.showinfo(title='成功', message='客戶資料已刪除')
+                self.selected_item_index = None
+        else:
+            messagebox.showwarning(title='警告', message='請先選擇一個客戶')
+
 
 class QuotePage(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
+        # 開啟客戶資料
+        try:
+            self.excel_cms = ExcelCMS('customers.xlsx')
+            self.cms_datas = self.excel_cms.read_all_datas()
+            if not self.cms_datas:
+                print("Warning: No data found in Excel file.")
+        except Exception as e:
+            print(f"Error loading data: {e}")
+            messagebox.showerror("錯誤", "無法讀取客戶資料")
+        self.custom_list = self.excel_cms.get_column_data('A')
+        # print(self.custom_list)
 
         self.create_page()  # 初始化時創建佈局
 
@@ -211,14 +291,69 @@ class QuotePage(tk.Frame):
         # page Frame
         self.frame_container = tk.Frame(self)
         self.frame_container.pack(fill='both', expand=True)
-        
         # title
         self.title = tk.Label(self.frame_container, text='報價單', font=('標楷體', 30, 'bold'), fg='#000000')
-        self.title.place(relx=0.5, rely=0.1, relheight=0.1, relwidth=0.5, anchor='center')
-        
+        self.title.place(relx=0.5, rely=0.08, relheight=0.1, relwidth=0.5, anchor='center')
         # buttons
         self.btn_back = tk.Button(self.frame_container, text='回首頁', font=('標楷體', 16, 'bold'), fg='#000000', command=lambda: self.master.change_page(self.master.index_page))
-        self.btn_back.place(relx=0.9, rely=0.1, relwidth=0.1, relheight=0.05, anchor='center')
+        self.btn_back.place(relx=0.9, rely=0.08, relwidth=0.1, relheight=0.05, anchor='center')
+        self.btn_clesr = tk.Button(self.frame_container, text='清除', font=('標楷體', 16, 'bold'), fg='#000000', command=self.clear)
+        self.btn_clesr.place(relx=0.5, rely=0.17, relwidth=0.1, relheight=0.05, anchor='center')
+        # combobox - custom list
+        self.lab_custom = tk.Label(self.frame_container, text='請選擇客戶:', font=('標楷體', 14, 'bold'))
+        self.lab_custom.place(relx=0.15, rely=0.17, relheight=0.04, relwidth=0.15, anchor='center')
+        self.combobox_custom = ttk.Combobox(self.frame_container, values=self.custom_list, font=('標楷體', 14, 'bold'))
+        self.combobox_custom.place(relx=0.32, rely=0.17, relheight=0.04, relwidth=0.2, anchor='center')
+        self.combobox_custom.bind("<<ComboboxSelected>>", self.on_combobox_select)
+        # Entrys
+        self.label_custom = tk.Label(self.frame_container, text='公司名稱:', font=('標楷體', 14, 'bold'), fg='#000000')
+        self.label_custom.place(relx=0.15, rely=0.25, relwidth=0.1, relheight=0.05, anchor='center')
+        self.entry_custom = tk.Entry(self.frame_container, font=('標楷體', 14, 'bold'))
+        self.entry_custom.place(relx=0.32, rely=0.25, relwidth=0.25, relheight=0.04, anchor='center')
+        self.label_compiled = tk.Label(self.frame_container, text='統編:', font=('標楷體', 14, 'bold'), fg='#000000')
+        self.label_compiled.place(relx=0.5, rely=0.25, relwidth=0.1, relheight=0.05, anchor='center')
+        self.entry_compiled = tk.Entry(self.frame_container, font=('標楷體', 14, 'bold'))
+        self.entry_compiled.place(relx=0.67, rely=0.25, relwidth=0.25, relheight=0.04, anchor='center')
+        self.label_address = tk.Label(self.frame_container, text='公司地址:', font=('標楷體', 14, 'bold'), fg='#000000')
+        self.label_address.place(relx=0.15, rely=0.3, relwidth=0.3, relheight=0.05, anchor='center')
+        self.entry_address = tk.Entry(self.frame_container, font=('標楷體', 14, 'bold'))
+        self.entry_address.place(relx=0.5, rely=0.3, relwidth=0.6, relheight=0.04, anchor='center')
+        self.label_contact = tk.Label(self.frame_container, text='聯絡人:', font=('標楷體', 14, 'bold'), fg='#000000')
+        self.label_contact.place(relx=0.15, rely=0.35, relwidth=0.1, relheight=0.05, anchor='center')
+        self.entry_contact = tk.Entry(self.frame_container, font=('標楷體', 14, 'bold'))
+        self.entry_contact.place(relx=0.32, rely=0.35, relwidth=0.25, relheight=0.04, anchor='center')
+        self.label_phone = tk.Label(self.frame_container, text='聯絡電話:', font=('標楷體', 14, 'bold'), fg='#000000')
+        self.label_phone.place(relx=0.5, rely=0.35, relwidth=0.1, relheight=0.05, anchor='center')
+        self.entry_phone = tk.Entry(self.frame_container, font=('標楷體', 14, 'bold'))
+        self.entry_phone.place(relx=0.67, rely=0.35, relwidth=0.25, relheight=0.04, anchor='center')
+
+    def on_combobox_select(self, event):
+        selected_value = self.combobox_custom.get()
+        selected_index = self.combobox_custom['values'].index(selected_value)
+        data = self.excel_cms.get_row_data(selected_index)
+        # 修改Entrys
+        self.entry_custom.delete(0, 'end')
+        self.entry_custom.insert(0, data[0])
+        self.entry_compiled.delete(0, 'end')
+        self.entry_compiled.insert(0, data[1])
+        self.entry_address.delete(0, 'end')
+        self.entry_address.insert(0, data[2])
+        self.entry_contact.delete(0, 'end')
+        self.entry_contact.insert(0, data[3])
+        self.entry_phone.delete(0, 'end')
+        self.entry_phone.insert(0, data[4])
+
+    def clear(self):
+        self.entry_custom.delete(0, 'end')
+        self.entry_compiled.delete(0, 'end')
+        self.entry_address.delete(0, 'end')
+        self.entry_contact.delete(0, 'end')
+        self.entry_phone.delete(0, 'end')
+        
+
+        
+
+
 
 class ReportPage(tk.Frame):
     def __init__(self, parent):
