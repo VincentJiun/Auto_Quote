@@ -11,7 +11,7 @@ class App(tk.Tk):
         # Title, Icon, size
         self.title('德龍企業社')
         self.iconbitmap('./image/icon.ico')
-        self.geometry('1024x768')
+        self.geometry('1280x780')
 
         # 創建 IndexPage 和 CMSPage 兩個頁面
         self.index_page = IndexPage(self)
@@ -30,7 +30,7 @@ class App(tk.Tk):
         # 顯示傳入的目標頁面
         page.pack(fill='both', expand=True)
 
-class IndexPage(tk.Frame):
+class IndexPage(ttk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
         self.resize_ids = {}  # 用於跟踪各個Label的after()事件ID
@@ -39,7 +39,7 @@ class IndexPage(tk.Frame):
 
     def create_page(self):
         # index Frame
-        self.frame_container = tk.Frame(self)
+        self.frame_container = ttk.Frame(self)
         self.frame_container.pack(fill='both', expand=True)
         
         # index image
@@ -87,7 +87,7 @@ class IndexPage(tk.Frame):
             label.config(image=tk_image)
             label.image = tk_image  # 保留引用，防止图片被垃圾回收
 
-class CMSPage(tk.Frame):
+class CMSPage(ttk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
 
@@ -269,8 +269,7 @@ class CMSPage(tk.Frame):
         else:
             messagebox.showwarning(title='警告', message='請先選擇一個客戶')
 
-
-class QuotePage(tk.Frame):
+class QuotePage(ttk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
         # 開啟客戶資料
@@ -285,47 +284,141 @@ class QuotePage(tk.Frame):
         self.custom_list = self.excel_cms.get_column_data('A')
         # print(self.custom_list)
 
+        self.total_rows = 7
+        self.total_height = 50*(self.total_rows+12)
+
         self.create_page()  # 初始化時創建佈局
 
     def create_page(self):
         # page Frame
-        self.frame_container = tk.Frame(self)
+        self.frame_container = ttk.Frame(self)
         self.frame_container.pack(fill='both', expand=True)
-        # title
-        self.title = tk.Label(self.frame_container, text='報價單', font=('標楷體', 30, 'bold'), fg='#000000')
-        self.title.place(relx=0.5, rely=0.08, relheight=0.1, relwidth=0.5, anchor='center')
-        # buttons
-        self.btn_back = tk.Button(self.frame_container, text='回首頁', font=('標楷體', 16, 'bold'), fg='#000000', command=lambda: self.master.change_page(self.master.index_page))
-        self.btn_back.place(relx=0.9, rely=0.08, relwidth=0.1, relheight=0.05, anchor='center')
-        self.btn_clesr = tk.Button(self.frame_container, text='清除', font=('標楷體', 16, 'bold'), fg='#000000', command=self.clear)
-        self.btn_clesr.place(relx=0.5, rely=0.17, relwidth=0.1, relheight=0.05, anchor='center')
-        # combobox - custom list
-        self.lab_custom = tk.Label(self.frame_container, text='請選擇客戶:', font=('標楷體', 14, 'bold'))
-        self.lab_custom.place(relx=0.15, rely=0.17, relheight=0.04, relwidth=0.15, anchor='center')
-        self.combobox_custom = ttk.Combobox(self.frame_container, values=self.custom_list, font=('標楷體', 14, 'bold'))
-        self.combobox_custom.place(relx=0.32, rely=0.17, relheight=0.04, relwidth=0.2, anchor='center')
+        # create canvas
+        self.canvas = tk.Canvas(self.frame_container, scrollregion=(0,0,self.frame_container.winfo_width(),self.total_height))
+        self.canvas.pack(fill='both', expand=True)
+        # frame covered the canvas
+        self.inner_frame = ttk.Frame(self.frame_container)
+        # self.canvas.create_window((0,0), window=self.inner_frame, anchor='nw', width=self.frame_container.winfo_width(), height=self.frame_container.winfo_height())
+        # Scroolbar
+        self.scrollbar = ttk.Scrollbar(self.frame_container, orient='vertical', command=self.canvas.yview)
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+        self.scrollbar.place(relx=1, rely=0, relheight=1, anchor='ne')
+        # canvas event
+        self.canvas.bind_all('<MouseWheel>', lambda event:self.canvas.yview_scroll(-int(event.delta/60), 'units'))
+        self.frame_container.bind('<Configure>', self.on_frame_configure)
+
+        for x in range(8):
+            self.inner_frame.grid_columnconfigure(x, weight=1)  # Allow columns to expand equally
+        # for y in range(11+self.total_rows):
+        #     self.inner_frame.grid_rowconfigure(y, weight=1) # Allow rows to expand
+        # Title
+        self.title = tk.Label(self.inner_frame, text='報價單', font=('標楷體', 30, 'bold'), fg='#000000')
+        self.title.grid(row=0, column=0, columnspan=8, pady=10, padx=10, sticky="nesw")
+        # # Buttons
+        self.btn_back = tk.Button(self.inner_frame, text='回首頁', font=('標楷體', 16, 'bold'), fg='#000000', command=lambda: self.master.change_page(self.master.index_page))
+        self.btn_back.grid(row=1, column=7, pady=10, padx=25, sticky="we")
+        self.btn_clear = tk.Button(self.inner_frame, text='清除', font=('標楷體', 16, 'bold'), fg='#000000', command=self.clear)
+        self.btn_clear.grid(row=2, column=3, pady=10, padx=10, sticky="we")
+        # # Combobox - custom list
+        self.lab_custom = tk.Label(self.inner_frame, text='請選擇客戶:', font=('標楷體', 14, 'bold'))
+        self.lab_custom.grid(row=2, column=0, pady=5, padx=10, sticky="ew")
+        self.combobox_custom = ttk.Combobox(self.inner_frame, values=self.custom_list, font=('標楷體', 14, 'bold'))
+        self.combobox_custom.grid(row=2, column=1, columnspan=2, pady=5, padx=10, sticky="ew")
         self.combobox_custom.bind("<<ComboboxSelected>>", self.on_combobox_select)
-        # Entrys
-        self.label_custom = tk.Label(self.frame_container, text='公司名稱:', font=('標楷體', 14, 'bold'), fg='#000000')
-        self.label_custom.place(relx=0.15, rely=0.25, relwidth=0.1, relheight=0.05, anchor='center')
-        self.entry_custom = tk.Entry(self.frame_container, font=('標楷體', 14, 'bold'))
-        self.entry_custom.place(relx=0.32, rely=0.25, relwidth=0.25, relheight=0.04, anchor='center')
-        self.label_compiled = tk.Label(self.frame_container, text='統編:', font=('標楷體', 14, 'bold'), fg='#000000')
-        self.label_compiled.place(relx=0.5, rely=0.25, relwidth=0.1, relheight=0.05, anchor='center')
-        self.entry_compiled = tk.Entry(self.frame_container, font=('標楷體', 14, 'bold'))
-        self.entry_compiled.place(relx=0.67, rely=0.25, relwidth=0.25, relheight=0.04, anchor='center')
-        self.label_address = tk.Label(self.frame_container, text='公司地址:', font=('標楷體', 14, 'bold'), fg='#000000')
-        self.label_address.place(relx=0.15, rely=0.3, relwidth=0.3, relheight=0.05, anchor='center')
-        self.entry_address = tk.Entry(self.frame_container, font=('標楷體', 14, 'bold'))
-        self.entry_address.place(relx=0.5, rely=0.3, relwidth=0.6, relheight=0.04, anchor='center')
-        self.label_contact = tk.Label(self.frame_container, text='聯絡人:', font=('標楷體', 14, 'bold'), fg='#000000')
-        self.label_contact.place(relx=0.15, rely=0.35, relwidth=0.1, relheight=0.05, anchor='center')
-        self.entry_contact = tk.Entry(self.frame_container, font=('標楷體', 14, 'bold'))
-        self.entry_contact.place(relx=0.32, rely=0.35, relwidth=0.25, relheight=0.04, anchor='center')
-        self.label_phone = tk.Label(self.frame_container, text='聯絡電話:', font=('標楷體', 14, 'bold'), fg='#000000')
-        self.label_phone.place(relx=0.5, rely=0.35, relwidth=0.1, relheight=0.05, anchor='center')
-        self.entry_phone = tk.Entry(self.frame_container, font=('標楷體', 14, 'bold'))
-        self.entry_phone.place(relx=0.67, rely=0.35, relwidth=0.25, relheight=0.04, anchor='center')
+        # # Entry fields
+        self.label_custom = tk.Label(self.inner_frame, text='公司名稱:', font=('標楷體', 14, 'bold'), fg='#000000')
+        self.label_custom.grid(row=3, column=0, pady=5, padx=5, sticky="ew")
+        self.entry_custom = tk.Entry(self.inner_frame, font=('標楷體', 14, 'bold'))
+        self.entry_custom.grid(row=3, column=1, columnspan=2, pady=5, padx=5, sticky="ew")
+        self.label_compiled = tk.Label(self.inner_frame, text='統編:', font=('標楷體', 14, 'bold'), fg='#000000')
+        self.label_compiled.grid(row=3, column=3, pady=5, padx=5, sticky="e")
+        self.entry_compiled = tk.Entry(self.inner_frame, font=('標楷體', 14, 'bold'))
+        self.entry_compiled.grid(row=3, column=4, pady=5, padx=10, sticky="w")
+        self.label_address = tk.Label(self.inner_frame, text='公司地址:', font=('標楷體', 14, 'bold'), fg='#000000')
+        self.label_address.grid(row=4, column=0, pady=5, padx=10, sticky="ew")
+        self.entry_address = tk.Entry(self.inner_frame, font=('標楷體', 14, 'bold'))
+        self.entry_address.grid(row=4, column=1, columnspan=5, pady=5, padx=5, sticky="ew")
+        self.label_contact = tk.Label(self.inner_frame, text='聯絡人:', font=('標楷體', 14, 'bold'), fg='#000000')
+        self.label_contact.grid(row=5, column=0, pady=5, padx=10, sticky="ew")
+        self.entry_contact = tk.Entry(self.inner_frame, font=('標楷體', 14, 'bold'))
+        self.entry_contact.grid(row=5, column=1, columnspan=2, pady=5, padx=10, sticky="ew")
+        self.label_phone = tk.Label(self.inner_frame, text='聯絡電話:', font=('標楷體', 14, 'bold'), fg='#000000')
+        self.label_phone.grid(row=5, column=3, pady=5, padx=10, sticky="e")
+        self.entry_phone = tk.Entry(self.inner_frame, font=('標楷體', 14, 'bold'))
+        self.entry_phone.grid(row=5, column=4, pady=5, padx=10, sticky="w")
+        # # Horizontal Line
+        self.h_line = ttk.Separator(self.inner_frame, orient='horizontal')
+        self.h_line.grid(row=6, column=0, columnspan=8, pady=10, padx=25, sticky="ew")
+        # label subtitle
+        self.label_subtitle = tk.Label(self.inner_frame, text="項目列表", font=('標楷體', 18, 'bold'))
+        self.label_subtitle.grid(row=7, column=0, columnspan=9, pady=10, sticky='we')
+        # 項目列表
+        self.label_product = tk.Label(self.inner_frame, text='產品', font=('標楷體', 16, 'bold'))
+        self.label_product.grid(row=8, column=0, columnspan=2, padx=25, pady=5, sticky='we')
+        self.label_format = tk.Label(self.inner_frame, text='品名/規格', font=('標楷體', 16, 'bold'))
+        self.label_format.grid(row=8, column=2, columnspan=2, padx=25, pady=5, sticky='we')
+        self.label_amount = tk.Label(self.inner_frame, text='數量', font=('標楷體', 16, 'bold'))
+        self.label_amount.grid(row=8, column=4, padx=25, pady=5, sticky='we')
+        self.label_unit = tk.Label(self.inner_frame, text='單位', font=('標楷體', 16, 'bold'))
+        self.label_unit.grid(row=8, column=5, padx=25, pady=5, sticky='we')
+        self.label_cost = tk.Label(self.inner_frame, text='單價', font=('標楷體', 16, 'bold'))
+        self.label_cost.grid(row=8, column=6, columnspan=2, padx=25, pady=5, sticky='we')
+        # Entrys 
+        for i in range(self.total_rows):
+            self.entry_product = tk.Entry(self.inner_frame, font=('標楷體', 14, 'bold'))
+            self.entry_product.grid(row=9+i, column=0, columnspan=2, padx=30, pady=5, sticky='we')
+            self.entry_format = tk.Entry(self.inner_frame, font=('標楷體', 14, 'bold'))
+            self.entry_format.grid(row=9+i, column=2, columnspan=2, padx=30, pady=5, sticky='we')
+            self.entry_amount = tk.Entry(self.inner_frame, font=('標楷體', 14, 'bold'))
+            self.entry_amount.grid(row=9+i, column=4, padx=30, pady=5, sticky='we')
+            self.entry_unit = tk.Entry(self.inner_frame, font=('標楷體', 14, 'bold'))
+            self.entry_unit.grid(row=9+i, column=5, padx=30, pady=5, sticky='we')
+            self.entry_cost = tk.Entry(self.inner_frame, font=('標楷體', 14, 'bold'))
+            self.entry_cost.grid(row=9+i, column=6, columnspan=2, padx=30, pady=5, sticky='we')
+
+        # button Add
+        self.btn_addrow = tk.Button(self.inner_frame, text='+新增', font=('標楷體', 14, 'bold'), command=self.add_row)
+        self.btn_addrow.grid(row=self.total_rows+10, column=4, padx=15, pady=10, sticky='we')
+        self.btn_confirm = tk.Button(self.inner_frame, text='確認', font=('標楷體', 14, 'bold'))
+        self.btn_confirm.grid(row=self.total_rows+11, column=7, padx=30, pady=10, sticky='we')
+
+        
+        
+    def add_row(self):
+        # Add row entrys
+        self.entry_product = tk.Entry(self.inner_frame, font=('標楷體', 14, 'bold'))
+        self.entry_product.grid(row=9+self.total_rows, column=0, columnspan=2, padx=30, pady=5, sticky='we')
+        self.btn_addrow.grid(row=self.total_rows+10, column=4, padx=15, pady=10, sticky='we')
+        self.btn_confirm.grid(row=self.total_rows+11, column=7, padx=30, pady=10, sticky='we')
+        # 改變總高度
+        self.total_rows += 1
+        self.total_height = 40*(self.total_rows+11)
+        heights = self.total_height
+        # Update the scroll region to encompass the inner frame
+        if self.total_height >= self.frame_container.winfo_height():
+            heights = self.total_height
+            self.canvas.bind_all('<MouseWheel>', lambda event:self.canvas.yview_scroll(-int(event.delta/60), 'units'))
+            self.scrollbar.place(relx=1, rely=0, relheight=1, anchor='ne')
+        else:
+            heights = self.frame_container.winfo_height()
+            self.canvas.unbind_all('<MouseWheel>')
+            self.scrollbar.place_forget()
+        # 重繪Canvas
+        self.canvas.create_window((0,0), window=self.inner_frame, anchor='nw', width=self.frame_container.winfo_width(), height=heights)
+        self.canvas.config(scrollregion=self.canvas.bbox("all")) # 重新綁定scrollbar 滾動範圍
+
+    def on_frame_configure(self, event):
+        # Update the scroll region to encompass the inner frame
+        if self.total_height >= self.frame_container.winfo_height():
+            heights = self.total_height
+            self.canvas.bind_all('<MouseWheel>', lambda event:self.canvas.yview_scroll(-int(event.delta/60), 'units'))
+            self.scrollbar.place(relx=1, rely=0, relheight=1, anchor='ne')
+        else:
+            heights = self.frame_container.winfo_height()
+            self.canvas.unbind_all('<MouseWheel>')
+            self.scrollbar.place_forget()
+
+        self.canvas.create_window((0,0), window=self.inner_frame, anchor='nw', width=self.frame_container.winfo_width(), height=heights)
 
     def on_combobox_select(self, event):
         selected_value = self.combobox_custom.get()
@@ -349,13 +442,8 @@ class QuotePage(tk.Frame):
         self.entry_address.delete(0, 'end')
         self.entry_contact.delete(0, 'end')
         self.entry_phone.delete(0, 'end')
-        
 
-        
-
-
-
-class ReportPage(tk.Frame):
+class ReportPage(ttk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
 
