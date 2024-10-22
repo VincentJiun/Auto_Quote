@@ -38,8 +38,8 @@ def insert_image_centered(file_path, image_path, sheet_name='Sheet1', cell='A1')
     img_height = img.height
     
     # 計算需要縮放的比例
-    scale_width = col_width * 180  # 1個Excel列的寬度約等於7.5個像素
-    scale_height = row_height * 180  # 1個Excel行的高度約等於0.75個像素
+    scale_width = col_width * 7.5  # 1個Excel列的寬度約等於7.5個像素
+    scale_height = row_height * 7.5  # 1個Excel行的高度約等於0.75個像素
 
     scale_ratio = min(scale_width / img_width, scale_height / img_height)
 
