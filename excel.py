@@ -57,4 +57,17 @@ class ExcelCMS(Excel):
         self.ws.delete_rows(row_index + 2)
         self.wb.save(self.path)
 
+class ExcelQuote(Excel):
+    def __init__(self, path):
+        self.path = f'./data/{path}.xlsx'
+        if os.path.exists('./template/repair.xlsx'):
+            self.wb = load_workbook('./template/repair.xlsx')
+            self.wb.save(self.path)
+        else:
+            pass
 
+    def modify_quote(self):
+        self.wb_quote = load_workbook(self.path)
+        self.ws = self.wb_quote.active
+        self.ws['B9'] = 'test'
+        self.wb_quote.save(self.path)

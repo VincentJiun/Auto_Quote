@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
 
-from excel import ExcelCMS
+from excel import ExcelCMS, ExcelQuote
 
 class App(tk.Tk):
     def __init__(self):
@@ -386,12 +386,6 @@ class QuotePage(ttk.Frame):
             self.entry_cost = tk.Entry(self.inner_frame, font=('標楷體', 14, 'bold'))
             self.entry_cost.grid(row=9+i, column=6, columnspan=2, padx=30, pady=5, sticky='we')
             self.list_cost.append(self.entry_cost)
-        
-        # self.list_entries.append(self.list_product)
-        # self.list_entries.append(self.list_format)
-        # self.list_entries.append(self.list_amount)
-        # self.list_entries.append(self.list_unit)
-        # self.list_entries.append(self.list_cost)
         # button Add
         self.btn_addrow = tk.Button(self.inner_frame, text='+新增', font=('標楷體', 14, 'bold'), command=self.add_row)
         self.btn_addrow.grid(row=self.total_rows+10, column=4, padx=15, pady=10, sticky='we')
@@ -472,8 +466,10 @@ class QuotePage(ttk.Frame):
         self.entry_phone.delete(0, 'end')
 
     def comfirm(self):
-        for i,product in enumerate(self.list_product):
-            print(f'{i+1}:{product.get()}')
+        # for i,product in enumerate(self.list_product):
+        #     print(f'{i+1}:{product.get()}')
+        self.excel_quote = ExcelQuote('text')
+        self.excel_quote.modify_quote()
             
 
 
