@@ -1,8 +1,13 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
+import time
+from tkcalendar import Calendar
+from datetime import datetime
+import os
+import subprocess
 
-from excel import ExcelCMS
+from excel import ExcelCMS, ExcelQuote
 
 class App(tk.Tk):
     def __init__(self):
@@ -282,7 +287,12 @@ class QuotePage(ttk.Frame):
             print(f"Error loading data: {e}")
             messagebox.showerror("錯誤", "無法讀取客戶資料")
         self.custom_list = self.excel_cms.get_column_data('A')
-        # print(self.custom_list)
+        self.unit = ['式', 'L', '組', '顆', '片', '條', '座', '罐', '個', '支']
+        self.list_product = []
+        self.list_format = []
+        self.list_amount = []
+        self.list_unit = []
+        self.list_cost = []
 
         self.total_rows = 7
         self.total_height = 50*(self.total_rows+12)
@@ -309,8 +319,6 @@ class QuotePage(ttk.Frame):
 
         for x in range(8):
             self.inner_frame.grid_columnconfigure(x, weight=1)  # Allow columns to expand equally
-        # for y in range(11+self.total_rows):
-        #     self.inner_frame.grid_rowconfigure(y, weight=1) # Allow rows to expand
         # Title
         self.title = tk.Label(self.inner_frame, text='報價單', font=('標楷體', 30, 'bold'), fg='#000000')
         self.title.grid(row=0, column=0, columnspan=8, pady=10, padx=10, sticky="nesw")
@@ -337,7 +345,7 @@ class QuotePage(ttk.Frame):
         self.label_address = tk.Label(self.inner_frame, text='公司地址:', font=('標楷體', 14, 'bold'), fg='#000000')
         self.label_address.grid(row=4, column=0, pady=5, padx=10, sticky="ew")
         self.entry_address = tk.Entry(self.inner_frame, font=('標楷體', 14, 'bold'))
-        self.entry_address.grid(row=4, column=1, columnspan=5, pady=5, padx=5, sticky="ew")
+        self.entry_address.grid(row=4, column=1, columnspan=4, pady=5, padx=5, sticky="ew")
         self.label_contact = tk.Label(self.inner_frame, text='聯絡人:', font=('標楷體', 14, 'bold'), fg='#000000')
         self.label_contact.grid(row=5, column=0, pady=5, padx=10, sticky="ew")
         self.entry_contact = tk.Entry(self.inner_frame, font=('標楷體', 14, 'bold'))
@@ -346,6 +354,17 @@ class QuotePage(ttk.Frame):
         self.label_phone.grid(row=5, column=3, pady=5, padx=10, sticky="e")
         self.entry_phone = tk.Entry(self.inner_frame, font=('標楷體', 14, 'bold'))
         self.entry_phone.grid(row=5, column=4, pady=5, padx=10, sticky="w")
+        # Calendar
+        # 取得當天日期
+        today = datetime.today()
+        self.cal = Calendar(self.inner_frame, selectmode="day", year=today.year, month=today.month, day=today.day, date_pattern="yyyy/mm/dd")
+        self.cal.grid(row=3, column=5, rowspan=3, sticky="nsew")
+        self.label_cal = tk.Label(self.inner_frame, font=('標楷體', 14, 'bold'), text='')
+        self.label_cal.grid(row=2, column=5)
+        selected_date = self.cal.get_date()
+        self.label_cal.config(text="報價日期：" + selected_date)
+        # 綁定 <<CalendarSelected>> 事件
+        self.cal.bind("<<CalendarSelected>>", self.update_label)
         # # Horizontal Line
         self.h_line = ttk.Separator(self.inner_frame, orient='horizontal')
         self.h_line.grid(row=6, column=0, columnspan=8, pady=10, padx=25, sticky="ew")
@@ -363,31 +382,51 @@ class QuotePage(ttk.Frame):
         self.label_unit.grid(row=8, column=5, padx=25, pady=5, sticky='we')
         self.label_cost = tk.Label(self.inner_frame, text='單價', font=('標楷體', 16, 'bold'))
         self.label_cost.grid(row=8, column=6, columnspan=2, padx=25, pady=5, sticky='we')
-        # Entrys 
+        # Entrys
         for i in range(self.total_rows):
             self.entry_product = tk.Entry(self.inner_frame, font=('標楷體', 14, 'bold'))
             self.entry_product.grid(row=9+i, column=0, columnspan=2, padx=30, pady=5, sticky='we')
+            self.list_product.append(self.entry_product)
             self.entry_format = tk.Entry(self.inner_frame, font=('標楷體', 14, 'bold'))
             self.entry_format.grid(row=9+i, column=2, columnspan=2, padx=30, pady=5, sticky='we')
+            self.list_format.append(self.entry_format)
             self.entry_amount = tk.Entry(self.inner_frame, font=('標楷體', 14, 'bold'))
             self.entry_amount.grid(row=9+i, column=4, padx=30, pady=5, sticky='we')
-            self.entry_unit = tk.Entry(self.inner_frame, font=('標楷體', 14, 'bold'))
-            self.entry_unit.grid(row=9+i, column=5, padx=30, pady=5, sticky='we')
+            self.list_amount.append(self.entry_amount)
+            self.combobox_unit = ttk.Combobox(self.inner_frame, values=self.unit, font=('標楷體', 14, 'bold'))
+            self.combobox_unit.grid(row=9+i, column=5, padx=30, pady=5, sticky='we')
+            self.list_unit.append(self.combobox_unit)
             self.entry_cost = tk.Entry(self.inner_frame, font=('標楷體', 14, 'bold'))
             self.entry_cost.grid(row=9+i, column=6, columnspan=2, padx=30, pady=5, sticky='we')
-
+            self.list_cost.append(self.entry_cost)
         # button Add
         self.btn_addrow = tk.Button(self.inner_frame, text='+新增', font=('標楷體', 14, 'bold'), command=self.add_row)
         self.btn_addrow.grid(row=self.total_rows+10, column=4, padx=15, pady=10, sticky='we')
-        self.btn_confirm = tk.Button(self.inner_frame, text='確認', font=('標楷體', 14, 'bold'))
+        self.btn_confirm = tk.Button(self.inner_frame, text='確認', font=('標楷體', 14, 'bold'), command=self.comfirm)
         self.btn_confirm.grid(row=self.total_rows+11, column=7, padx=30, pady=10, sticky='we')
-
         
-        
+    def update_label(self, event):
+        selected_date = self.cal.get_date()  # 取得格式化後的日期
+        self.label_cal.config(text="報價日期：" + selected_date)
+    
     def add_row(self):
         # Add row entrys
         self.entry_product = tk.Entry(self.inner_frame, font=('標楷體', 14, 'bold'))
         self.entry_product.grid(row=9+self.total_rows, column=0, columnspan=2, padx=30, pady=5, sticky='we')
+        self.list_product.append(self.entry_product)
+        self.entry_format = tk.Entry(self.inner_frame, font=('標楷體', 14, 'bold'))
+        self.entry_format.grid(row=9+self.total_rows, column=2, columnspan=2, padx=30, pady=5, sticky='we')
+        self.list_format.append(self.entry_format)
+        self.entry_amount = tk.Entry(self.inner_frame, font=('標楷體', 14, 'bold'))
+        self.entry_amount.grid(row=9+self.total_rows, column=4, padx=30, pady=5, sticky='we')
+        self.list_amount.append(self.entry_amount)
+        self.combobox_unit = ttk.Combobox(self.inner_frame, values=self.unit, font=('標楷體', 14, 'bold'))
+        self.combobox_unit.grid(row=9+self.total_rows, column=5, padx=30, pady=5, sticky='we')
+        self.list_unit.append(self.combobox_unit)
+        self.entry_cost = tk.Entry(self.inner_frame, font=('標楷體', 14, 'bold'))
+        self.entry_cost.grid(row=9+self.total_rows, column=6, columnspan=2, padx=30, pady=5, sticky='we')
+        self.list_cost.append(self.entry_cost)
+
         self.btn_addrow.grid(row=self.total_rows+10, column=4, padx=15, pady=10, sticky='we')
         self.btn_confirm.grid(row=self.total_rows+11, column=7, padx=30, pady=10, sticky='we')
         # 改變總高度
@@ -442,6 +481,63 @@ class QuotePage(ttk.Frame):
         self.entry_address.delete(0, 'end')
         self.entry_contact.delete(0, 'end')
         self.entry_phone.delete(0, 'end')
+
+    def comfirm(self):
+        total_list = []
+        product_list = []
+        format_list = []
+        amount_list = []
+        unit_list = []
+        cost_list = []
+
+        if self.entry_custom.get() != '':
+            custom = self.entry_custom.get()
+        else:
+            messagebox.showwarning(title='請輸入客戶資料', message='客戶資料不能空白!')
+        
+        for index, product in enumerate(self.list_product):
+            if product.get() != '':
+                product_list.append(product.get())
+                format_list.append(self.list_format[index].get())
+                amount_list.append(self.list_amount[index].get())
+                unit_list.append(self.list_unit[index].get())
+                cost_list.append(self.list_cost[index].get())
+
+        total_list.append(product_list)
+        total_list.append(format_list)
+        total_list.append(amount_list)
+        total_list.append(unit_list)
+        total_list.append(cost_list)
+
+        q_time = self.cal.get_date()
+        str_time = q_time.replace('/', '')
+        file_name = f'{str_time}_{custom}'
+        
+        self.excel_quote = ExcelQuote(file_name)
+        self.excel_quote.modify_quote(q_time, custom, *total_list)
+        # 完整的檔案路徑
+        file_path = f'./quote/{file_name}.xlsx'
+
+        if os.path.exists(file_path):
+            print(f"要開啟的檔案路徑: {file_path}")  # 確認檔案路徑
+            subprocess.Popen(['start', 'excel.exe', file_path], shell=True)
+        else:
+            print('沒有檔案')
+        
+
+        # try:
+        #     os.startfile(file_path)
+        #     print(f"要開啟的檔案路徑: {file_path}")  # 確認檔案路徑
+        # except FileNotFoundError:
+        #     print('無法打開指定的文件!')
+        # except LookupError:
+        #     print('指定了未知的編碼!')
+        # except UnicodeDecodeError:
+        #     print('讀取文件時解碼錯誤!')
+        # except Exception as e:
+        #     print(f"無法開啟檔案: {file_path}，錯誤訊息: {e}")
+                
+
 
 class ReportPage(ttk.Frame):
     def __init__(self, parent):

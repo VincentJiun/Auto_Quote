@@ -57,4 +57,36 @@ class ExcelCMS(Excel):
         self.ws.delete_rows(row_index + 2)
         self.wb.save(self.path)
 
+class ExcelQuote(Excel):
+    def __init__(self, path):
+        self.path = f'./quote/{path}.xlsx'
+        if os.path.exists('./template/repair.xlsx'):
+            self.wb = load_workbook('./template/repair.xlsx')
+            self.wb.save(self.path)
+        else:
+            pass
 
+    def modify_quote(self, q_time, custom, *list):
+        self.wb_quote = load_workbook(self.path)
+        self.ws = self.wb_quote.active
+        # 將 data 填入 Excel 表格
+        for col, column_data in enumerate(list, start=2):  # 逐列處理資料 =SUM(D9*F9)
+            for row, value in enumerate(column_data, start=9):
+                self.ws.cell(row=row, column=col, value=value)
+
+        for row, value in enumerate(list[1], start=1):
+            self.ws.cell(row=row+8, column=1, value=str(row))
+            formula = f"=SUM(D{row+8}*F{row+8})"
+            self.ws.cell(row=row+8, column=7, value=formula)
+
+            # for col in [4, 6]:  # D列和F列
+            #     cell = self.ws.cell(row=row+8, column=col)
+            #     cell.number_format = '0'  # 數字格式
+
+        self.ws['A6'] = f'客戶名稱：{custom}' # 微軟正黑體 Light, 14 ,bold
+        str_time = q_time.split('/')
+        self.ws['F6'] = f'報價日期：{str_time[0]}年{str_time[1]}月{str_time[2]}日'
+
+        self.wb_quote.save(self.path)
+        # self.wb_quote.close()
+        
